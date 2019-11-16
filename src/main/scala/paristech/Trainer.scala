@@ -48,7 +48,9 @@ object Trainer {
       *
       ********************************************************************************/
 
+    println("\n")
     println("Trainer launched.")
+    println("\n")
 
     // Chargement du DataFrame
     val data = spark.read.parquet("data/prepared_trainingset/*.parquet")
