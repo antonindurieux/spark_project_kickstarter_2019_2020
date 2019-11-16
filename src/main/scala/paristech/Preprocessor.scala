@@ -2,7 +2,7 @@ package paristech
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
 
 
@@ -51,21 +51,19 @@ object Preprocessor {
       ********************************************************************************/
 
     println("\n")
-    println("Hello World ! from Preprocessor")
+    println("Preprocessor launched")
     println("\n")
 
-    // Chargement des données dans un dataframe(CHANGER LE CHEMIN ABSOLU)
+    // Chargement des données dans un dataframe
     val df: DataFrame = spark
       .read
       .option("header", value = true) // utilise la première ligne du (des) fichier(s) comme header
       .option("inferSchema", "true") // pour inférer le type de chaque colonne (Int, String, etc.)
-      // A CHANGER POUR CHEMIN ABSOLU:
-      .csv("/home/antonin/Dropbox/Cours_Paristech/INF729-Introduction_Hadoop/Spark/cours-spark-telecom-master/data/train_clean.csv")
+      .csv("data/train_clean.csv")
 
     // Affichage du nombre de lignes et de colonnes dans le DataFrame
     println(s"Nombre de lignes : ${df.count}")
     println(s"Nombre de colonnes : ${df.columns.length}")
-
 
     // Affichage d'un extrait du dataframe
     df.show()
@@ -73,7 +71,7 @@ object Preprocessor {
     // Affichage du schéma du dataframe
     df.printSchema()
 
-    // Cast des colonnes contenant des entiers
+    // Typage des colonnes contenant des entiers
     val dfCasted: DataFrame = df
       .withColumn("goal", $"goal".cast("Int"))
       .withColumn("deadline" , $"deadline".cast("Int"))
@@ -91,7 +89,6 @@ object Preprocessor {
       .describe()
       .show
 
-    /*
     // Affichage de quelques caractéristiques du jeu de donnée
     dfCasted.groupBy("disable_communication").count.orderBy($"count".desc).show(100)
     dfCasted.groupBy("country").count.orderBy($"count".desc).show(100)
@@ -101,17 +98,14 @@ object Preprocessor {
     dfCasted.groupBy("backers_count").count.orderBy($"count".desc).show(100)
     dfCasted.select("goal", "final_status").show(30)
     dfCasted.groupBy("country", "currency").count.orderBy($"count".desc).show(50)
-    // Le résultat montre que les données ne sont pas très "clean", il y a des données rangées dans de mauvaises colonnes
-
-     */
 
     // Suppression de la colonne disable_communication
     val df2: DataFrame = dfCasted.drop("disable_communication")
 
-    // Suppression des données du futur (colonnes backers_count et state_changed_at
+    // Suppression des données du futur
     val dfNoFutur: DataFrame = df2.drop("backers_count", "state_changed_at")
 
-    // Création des UDF cleanCountry et cleanCurrency
+    // Création des UDF cleanCountryUdf et cleanCurrencyUdf
     // fonction cleanCountry
     def cleanCountry(country: String, currency: String): String = {
       if (country == "False" || country == "True")
@@ -130,11 +124,10 @@ object Preprocessor {
         currency
     }
 
-    // création des UDFs
     val cleanCountryUdf = udf(cleanCountry _)
     val cleanCurrencyUdf = udf(cleanCurrency _)
 
-    // Création du dataframe avec les colonnes country2 et currency2, cleanées
+    // Création du dataframe avec les colonnes country2 et currency2, nettoyées
     val dfCountry: DataFrame = dfNoFutur
       .withColumn("country2", cleanCountryUdf($"country", $"currency"))
       .withColumn("currency2", cleanCurrencyUdf($"currency"))
@@ -170,14 +163,15 @@ object Preprocessor {
       .na.fill(-1, Seq("days_campaign", "hours_prepa", "goal"))
       .na.fill("unknown", Seq("country2", "currency2"))
 
-    // Ajout perso: Suppression des heures de préparation négative
+    // Ajout personnel: Suppression des heures de préparation négative
     val dfHoursClean: DataFrame = dfNoNull.filter($"hours_prepa" > 0)
 
-    // Sauvegarde au format parquet
-    dfHoursClean.write.parquet("/home/antonin/Dropbox/Cours_Paristech/INF729-Introduction_Hadoop/Spark/cours-spark-telecom-master/export_parquet/")
+    // Sauvegarde au format parquet (avec écrasement si il existe déjà)
+    dfHoursClean.write.mode(SaveMode.Overwrite).parquet("data/export_parquet/")
 
     println("\n")
     println("Preprocessing done!")
     println("\n")
+
   }
 }

@@ -50,17 +50,17 @@ object Trainer {
       *
       ********************************************************************************/
 
-    println("Trainer launched")
+    println("Trainer launched.")
 
-    // DataFrame loading
-    val data = spark.read.parquet("/home/antonin/Dropbox/Cours_Paristech/INF729-Introduction_Hadoop/Spark/cours-spark-telecom-master/data/prepared_trainingset/*.parquet")
+    // Chargement du DataFrame
+    val data = spark.read.parquet("data/prepared_trainingset/*.parquet")
 
-    // Training/test set splitting
+    // Split des données en jeux train et test
     val Array(trainingData, testData) = data.randomSplit(Array(0.9, 0.1))
 
     println("Pipeline building...")
 
-    // Stage 1 : Récupération des mots des textes
+    // Stage 1 : Découpage en mot de la colonne text
     val text_tokenizer = new RegexTokenizer()
       .setPattern("\\W+")
       .setGaps(true)
@@ -122,13 +122,13 @@ object Trainer {
       .setStages(Array(text_tokenizer, stopword_remover, wordtoken_vectorizer, wordvector_idf,
         country_indexer, currency_indexer, onehot_encoder, feature_assembler, logistic_reg))
 
-    // Parameters grid to search over
+    // Paramètres de la grille de recherche d'hyper-paramètres
     val paramGrid = new ParamGridBuilder()
       .addGrid(logistic_reg.elasticNetParam, Array(10e-8, 10e-6, 10e-4, 10e-2))
       .addGrid(wordtoken_vectorizer.minDF, Array(55.0, 75.0, 95.0))
       .build()
 
-    // Performance evaluation
+    // Evaluateur de performance
     val evaluator = new MulticlassClassificationEvaluator()
       .setLabelCol("final_status")
       .setPredictionCol("predictions")
@@ -146,13 +146,22 @@ object Trainer {
     println("Model fitting...")
     val model = trainValidationSplit.fit(trainingData)
 
-    // Predictions on test data
+    // Predictions sur les données test
     println("Computing predictions on test data...")
     val dfWithPredictions = model.transform(testData)
     dfWithPredictions.groupBy("final_status", "predictions").count.show()
 
+    // Affichage du F1 score
     val f1_score = evaluator.evaluate(dfWithPredictions)
     println(s"F1 Score = $f1_score")
+
+    // Sauvegarde du modèle
+    println("Model backup...")
+    model.write.overwrite().save("model/")
+
+    println("\n")
+    println("Training done!")
+    println("\n")
 
   }
 }
