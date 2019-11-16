@@ -5,7 +5,6 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
 
-
 object Preprocessor {
 
   def main(args: Array[String]): Unit = {

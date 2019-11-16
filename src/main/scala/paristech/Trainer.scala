@@ -9,8 +9,6 @@ import org.apache.spark.ml.feature._
 import org.apache.spark.ml.tuning.{ParamGridBuilder, TrainValidationSplit}
 import org.apache.spark.sql.SparkSession
 
-
-
 object Trainer {
 
   def main(args: Array[String]): Unit = {
