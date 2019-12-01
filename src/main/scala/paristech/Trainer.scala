@@ -156,7 +156,7 @@ object Trainer {
     println(s"F1 Score = $f1_score")
 
     // Sauvegarde du modèle
-    println("Model backup...")
+    println("Model saving...")
     model.write.overwrite().save("src/main/resources/model/")
 
     println("\n")
