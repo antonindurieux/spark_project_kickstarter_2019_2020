@@ -58,7 +58,7 @@ object Preprocessor {
       .read
       .option("header", value = true) // utilise la première ligne du (des) fichier(s) comme header
       .option("inferSchema", "true") // pour inférer le type de chaque colonne (Int, String, etc.)
-      .csv("data/train_clean.csv")
+      .csv("src/main/resources/train/train_clean.csv")
 
     // Affichage du nombre de lignes et de colonnes dans le DataFrame
     println(s"Nombre de lignes : ${df.count}")
@@ -157,16 +157,17 @@ object Preprocessor {
       .withColumn("text", concat($"name", lit(" "), $"desc", lit(" "), $"keywords"))
       .drop("name", "desc", "keywords")
 
-    // Remplacement des null dans les colonnes days_campaign, hours_prepa, goal, country2 et currency2
+    // Remplacement des null dans les colonnes days_campaign, hours_prepa, goal, country2, currency2 et text
     val dfNoNull: DataFrame = dftextConcat
       .na.fill(-1, Seq("days_campaign", "hours_prepa", "goal"))
       .na.fill("unknown", Seq("country2", "currency2"))
+      .na.fill("", Seq("text"))
 
     // Ajout personnel: Suppression des heures de préparation négative
     val dfHoursClean: DataFrame = dfNoNull.filter($"hours_prepa" > 0)
 
     // Sauvegarde au format parquet (avec écrasement si il existe déjà)
-    dfHoursClean.write.mode(SaveMode.Overwrite).parquet("data/export_parquet/")
+    dfHoursClean.write.mode(SaveMode.Overwrite).parquet("src/main/resources/preprocessed")
 
     println("\n")
     println("Preprocessing done!")

@@ -53,7 +53,7 @@ object Trainer {
     println("\n")
 
     // Chargement du DataFrame
-    val data = spark.read.parquet("data/prepared_trainingset/*.parquet")
+    val data = spark.read.parquet("src/main/resources/preprocessed/*.parquet")
 
     // Split des données en jeux train et test
     val Array(trainingData, testData) = data.randomSplit(Array(0.9, 0.1))
@@ -157,7 +157,7 @@ object Trainer {
 
     // Sauvegarde du modèle
     println("Model backup...")
-    model.write.overwrite().save("model/")
+    model.write.overwrite().save("src/main/resources/model/")
 
     println("\n")
     println("Training done!")
